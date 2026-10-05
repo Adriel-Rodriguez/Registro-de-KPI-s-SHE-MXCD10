@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Captura de indicadores SHE · MXCD10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --amarillo:#FFE600; --azul:#3483FA; --azul-osc:#2968C8; --azul-bg:#E3EDFE;
+    --fondo:#EDEDED; --tarjeta:#FFFFFF; --tinta:#333333; --suave:#737373; --linea:#E0E0E0;
+    --verde:#00A650; --verde-bg:#E6F7EE; --rojo:#F23D4F; --rojo-bg:#FDECEE; --gris-bg:#F2F2F2;
+    --radio:8px;
+    font-family:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--tinta);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--fondo)}
+  [hidden]{display:none!important}
+
+  header{background:var(--amarillo);padding:calc(18px + env(safe-area-inset-top,0px)) 16px 18px}
+  .wrap{max-width:760px;margin:0 auto}
+  header h1{margin:0;font-size:clamp(2rem,6vw,2.8rem);font-weight:800;line-height:1.05;letter-spacing:-.02em}
+  header p{margin:8px 0 0;font-size:1.05rem;color:#4a4a00}
+
+  /* ---- Pantalla de selección ---- */
+  .buscador{position:relative;margin-top:14px}
+  .buscador input{padding-left:40px;border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .buscador svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--suave)}
+  .filtros{display:flex;gap:8px;overflow-x:auto;padding:14px 0 2px;scrollbar-width:none}
+  .filtros::-webkit-scrollbar{display:none}
+  .filtro{font:inherit;font-size:.9rem;font-weight:600;padding:8px 14px;border-radius:99px;border:1px solid #BFBFBF;
+    background:#fff;color:var(--tinta);cursor:pointer;white-space:nowrap}
+  .filtro b{font-weight:700;color:var(--suave);margin-left:4px}
+  .filtro[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+  .filtro[aria-pressed="true"] b{color:#fff}
+  .filtro:focus-visible,.tile:focus-visible{outline:3px solid var(--azul);outline-offset:2px}
+  .bloque-tit{margin:18px 0 10px;font-size:.95rem;font-weight:700}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .tile{font:inherit;text-align:left;color:var(--tinta);background:var(--tarjeta);border:1px solid transparent;border-radius:var(--radio);
+    padding:16px;cursor:pointer;display:grid;grid-template-columns:44px 1fr;gap:4px 12px;align-items:start;
+    box-shadow:0 1px 2px rgba(0,0,0,.08);transition:border-color .15s,box-shadow .15s}
+  .tile:hover{border-color:var(--azul);box-shadow:0 4px 12px rgba(52,131,250,.15)}
+  .tile .ico{grid-row:span 3;width:44px;height:44px;border-radius:10px;background:var(--amarillo);display:grid;place-items:center;font-size:1.35rem}
+  .tile .nom{font-size:1.02rem;font-weight:700;line-height:1.25}
+  .tile .des{font-size:.85rem;color:var(--suave);line-height:1.35}
+  .tile .meta{font-size:.78rem;font-weight:600;color:var(--azul-osc);margin-top:4px}
+  .tile .meta.ok{color:#00733A}
+  .tile.inactivo{cursor:not-allowed;background:#F5F5F5;box-shadow:none;border-color:var(--linea);opacity:.55;filter:grayscale(1)}
+  .tile.inactivo:hover{border-color:var(--linea);box-shadow:none}
+  .tile.inactivo .meta{color:var(--suave)}
+  .sin-res{padding:28px 16px;text-align:center;color:var(--suave)}
+
+  /* ---- Barra del apartado abierto ---- */
+  .barra-ap{position:sticky;top:0;z-index:6;background:var(--tarjeta);border-bottom:1px solid var(--linea);
+    padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+  .barra-ap .wrap{display:flex;align-items:center;gap:10px}
+  .volver{font:inherit;font-weight:700;font-size:.92rem;color:var(--azul);background:none;border:0;cursor:pointer;
+    padding:8px 6px;display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .barra-ap select{flex:1;min-width:0;font-weight:700;border-color:transparent;background-color:var(--gris-bg);padding:9px 10px}
+  .entrar{animation:entrar .22s ease-out}
+  @keyframes entrar{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  main{max-width:760px;margin:0 auto;padding:16px}
+  .tarjeta{background:var(--tarjeta);border-radius:var(--radio);padding:18px 16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .tarjeta h2{margin:0 0 4px;font-size:1.2rem;font-weight:700}
+  .tarjeta h3{margin:0 0 4px;font-size:1.02rem;font-weight:700}
+  .sub{margin:0 0 14px;color:var(--suave);font-size:.88rem;line-height:1.4}
+  .dueno{display:inline-block;margin-bottom:8px;font-size:.8rem;font-weight:700;color:var(--azul-osc);background:var(--azul-bg);
+    padding:3px 9px;border-radius:99px}
+
+  .vacio{text-align:center;padding:36px 16px;color:var(--suave)}
+  .vacio strong{display:block;color:var(--tinta);font-size:1.05rem;margin-bottom:4px}
+
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .campos .ancho{grid-column:1/-1}
+  .campo{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600}
+  .campo .req{color:var(--rojo)}
+  .campo.falta input,.campo.falta select,.campo.falta textarea,.campo.falta .opciones label{border-color:var(--rojo)}
+  .campo.falta > span:first-child{color:var(--rojo)}
+  input,select,textarea{font:inherit;font-weight:400;font-size:1rem;color:var(--tinta);border:1px solid #BFBFBF;
+    border-radius:6px;padding:11px 12px;background:#fff;width:100%}
+  textarea{resize:vertical;min-height:72px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--azul);outline-offset:0;border-color:var(--azul)}
+
+  .opciones{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .opciones input{position:absolute;opacity:0;pointer-events:none}
+  .opciones label{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #BFBFBF;border-radius:6px;
+    font-weight:600;cursor:pointer;background:#fff}
+  .opciones input:focus-visible + label{outline:2px solid var(--azul);outline-offset:2px}
+  .opciones input[value="Sí"]:checked + label{background:var(--verde-bg);border-color:var(--verde);color:#00733A}
+  .opciones input[value="No"]:checked + label{background:var(--rojo-bg);border-color:var(--rojo);color:#B3192B}
+
+  .foto-btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.92rem;color:var(--azul);cursor:pointer;
+    background:#fff;border:1px dashed var(--azul);border-radius:6px;padding:10px 12px;width:fit-content}
+  .foto-btn input{display:none}
+  .miniatura{display:flex;align-items:center;gap:10px}
+  .miniatura img{width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--linea)}
+  .enlace{font:inherit;font-size:.88rem;color:var(--azul);background:none;border:0;cursor:pointer;padding:6px 0;text-decoration:underline}
+  .enlace.rojo{color:var(--rojo)}
+
+  .fila{border:1px solid var(--linea);border-radius:6px;padding:14px;margin-bottom:12px}
+  .fila-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .fila-cab strong{font-size:.92rem}
+  .calc{margin-top:10px;font-size:.88rem;font-weight:600;color:var(--azul-osc)}
+  .calc:empty{display:none}
+  .campo > .enlace{align-self:flex-start}
+  .nota{font-size:.82rem;font-weight:400;color:var(--suave);line-height:1.35}
+  textarea::placeholder{color:#9a9a9a;font-style:italic}
+  .subtit{margin:10px 0 -2px;padding-top:14px;border-top:1px solid var(--linea);font-size:1rem;font-weight:700}
+  .resumen{margin-top:16px}
+  .btn-sec{font:inherit;font-weight:700;font-size:.95rem;color:var(--azul);background:var(--azul-bg);border:0;border-radius:6px;
+    padding:12px 14px;width:100%;cursor:pointer}
+
+  .pendientes{display:none;background:#FFF6CC;border:1px solid #E6CF00;border-radius:var(--radio);padding:12px 14px;margin-bottom:14px;
+    font-size:.92rem;align-items:center;justify-content:space-between;gap:12px}
+  .pendientes.visible{display:flex}
+  .pendientes button{font:inherit;font-weight:700;font-size:.88rem;color:var(--azul);background:none;border:0;cursor:pointer;white-space:nowrap}
+
+  .acciones{position:sticky;bottom:0;background:linear-gradient(transparent,var(--fondo) 30%);padding:18px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+  .btn{font:inherit;font-size:1rem;font-weight:700;border:0;border-radius:6px;padding:15px 18px;width:100%;cursor:pointer}
+  .btn-prim{background:var(--azul);color:#fff}
+  .btn-prim:hover{background:var(--azul-osc)}
+  .btn-prim:disabled{background:#A9C9FC;cursor:wait}
+  .btn:focus-visible,.btn-sec:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+
+  .aviso{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;
+    background:var(--tinta);color:#fff;padding:12px 16px;border-radius:6px;font-size:.92rem;max-width:min(92vw,520px);
+    transition:opacity .2s,transform .2s;z-index:10;pointer-events:none}
+  .aviso.visible{opacity:1;transform:translate(-50%,0)}
+  .aviso.error{background:var(--rojo)} .aviso.ok{background:var(--verde)}
+
+  @media (max-width:560px){ .campos > *:not(.corto){grid-column:1/-1} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<header id="cabecera"><div class="wrap">
+  <h1>Captura de indicadores SHE</h1>
+  <p>¿Qué vas a registrar hoy?</p>
+  <label class="buscador">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" id="buscar" placeholder="Buscar: accidente, consultas, HAZMAT…" aria-label="Buscar apartado">
+  </label>
+</div></header>
+
+<div class="barra-ap" id="barraAp" hidden><div class="wrap">
+  <button type="button" class="volver" id="btnVolver" aria-label="Volver a los apartados">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Apartados</button>
+  <select id="cambiar" aria-label="Cambiar de apartado"></select>
+</div></div>
+
+<main>
+  <div class="pendientes" id="pendientes"><span id="pendTxt"></span>
+    <button type="button" id="btnPend">Enviar ahora</button></div>
+
+  <div id="inicio">
+    <div class="filtros" id="filtros" role="toolbar" aria-label="Filtrar por área"></div>
+    <div id="recientes"></div>
+    <h2 class="bloque-tit" id="titTodos">Todos los apartados</h2>
+    <div class="tiles" id="tiles"></div>
+  </div>
+
+  <div id="contenido" hidden></div>
+</main>
+
+<div class="acciones" id="acciones" hidden><div class="wrap">
+  <button class="btn btn-prim" id="btnEnviar" type="button">Enviar registro</button>
+</div></div>
+
+<div class="aviso" id="aviso" role="status"></div>
+
+<script>
+/* =================== CONFIGURACIÓN =================== */
+const CONFIG = {
+  URL_SCRIPT: 'https://script.google.com/macros/s/AKfycbz46oR32vmxglWt3nyikcjn09LU6JebcVG3gZLAQWllJpK7Bo4DoHzPX6--pJnjcEhGuw/exec',   // termina en /exec
+  TOKEN: '',                                   // opcional, igual que en Code.gs
+  SITIO: 'MXCD10'                              // siempre se guarda este sitio
+};
+const ZONAS = ['Recibo','Almacenaje','Surtido','Empaque','Embarque','Patio de maniobras','Cuarto de baterías','Oficinas','Comedor','Áreas exteriores'];
+const TURNOS = ['Matutino','Vespertino','Nocturno'];
+const sinEventos = { campo: 'tipo', noEn: ['Sin eventos'] };
+const pct = (a, b) => (Number(b) > 0 && a !== '' ? Math.round(Number(a) / Number(b) * 1000) / 10 : '');
+
+/* Tipos de campo: texto, numero, fecha, select, textarea, sino, foto, link
+   req: obligatorio · mostrarSi: {campo, en:[...]} o {campo, noEn:[...]} (compara el inicio del texto) */
+const APARTADOS = [
+  { id:'accidentabilidad', nombre:'Accidentabilidad', hoja:'Accidentabilidad', area:'SHE',
+    ayuda:'Reporte de indicadores: cuántos casos hubo de cada tipo. Si no hubo, deja el 0.',
+    campos:[
+      {id:'fecha', etiqueta:'Fecha del reporte', tipo:'fecha', req:true, hoy:true},
+      {id:'turno', etiqueta:'Turno', tipo:'select', opciones:[...TURNOS, 'Todo el día']},
+      {id:'t1', etiqueta:'Indicadores de accidentabilidad', tipo:'titulo'},
+      {id:'nm',  etiqueta:'NM',  tipo:'numero', req:true, valor:0, corto:true},
+      {id:'fac', etiqueta:'FAC', tipo:'numero', req:true, valor:0, corto:true},
+      {id:'idm', etiqueta:'IDM', tipo:'numero', req:true, valor:0, corto:true},
+      {id:'rwc', etiqueta:'RWC', tipo:'numero', req:true, valor:0, corto:true},
+      {id:'mtc', etiqueta:'MTC', tipo:'numero', req:true, valor:0, corto:true},
+      {id:'lta', etiqueta:'LTA', tipo:'numero', req:true, valor:0, corto:true},
+      {id:'detalle', etiqueta:'Detalle de accidentabilidad', tipo:'textarea', ancho:true, filas:8,
+        // Obligatorio solo si algún indicador es mayor a 0
+        reqSi: d => SIGLAS.some(k => Number(d[k]) > 0),
+        nota:'Desglosa cada caso por sigla y número. Si no hubo accidentabilidad, deja el espacio en blanco.',
+        placeholder:'Ejemplo:\n-NM1: Contusión en la cabeza por contacto con una charola que salió proyectada del tobogán.\n-FAC1: Herida lacerante superficial en el tercer dedo de la mano izquierda por contacto con la estructura del mezzanine.',
+        boton:{ texto:'Agregar líneas según los indicadores', accion: lineasPorSigla }}
+    ]},
+
+  { id:'consultas', nombre:'Consultas', hoja:'Consultas', area:'Servicio médico',
+    ayuda:'Una consulta por registro. No captures el nombre ni datos que identifiquen al paciente.',
+    campos:[
+      {id:'fecha', etiqueta:'Fecha de la consulta', tipo:'fecha', req:true, hoy:true},
+      {id:'hora', etiqueta:'Hora de la consulta', tipo:'hora', req:true, ahora:true},
+      {id:'persona', etiqueta:'Paciente', tipo:'select', req:true, opciones:['MELI','Externo']},
+      {id:'turno', etiqueta:'Turno', tipo:'select', opciones:TURNOS},
+      {id:'tipo', etiqueta:'Tipo de consulta', tipo:'select', req:true, ancho:true, opciones:['Enfermedad general','Riesgo de trabajo','Seguimiento de riesgo de trabajo','Control de enfermedad crónica','Examen médico de ingreso','Examen periódico','Curación','Orientación / toma de signos','Otra']},
+      {id:'relevante', etiqueta:'¿Consulta relevante?', tipo:'sino', req:true},
+      {id:'sintomas', etiqueta:'Signos y síntomas', tipo:'textarea', ancho:true}
+    ]},
+
+  { id:'salud_emocional', nombre:'Casos de salud emocional', hoja:'Salud emocional', area:'Servicio médico',
+    ayuda:'Un caso por registro. No captures el nombre ni datos que identifiquen a la persona.',
+    campos:[
+      {id:'fecha', etiqueta:'Fecha de atención', tipo:'fecha', req:true, hoy:true},
+      {id:'hora', etiqueta:'Hora de atención', tipo:'hora', req:true, ahora:true},
+      {id:'persona', etiqueta:'Paciente', tipo:'select', req:true, opciones:['MELI','Externo']},
+      {id:'turno', etiqueta:'Turno', tipo:'select', opciones:TURNOS},
+      {id:'caso', etiqueta:'Tipo de caso', tipo:'select', req:true, ancho:true, opciones:['Ansiedad','Estrés laboral','Depresión','Duelo','Problemas familiares','Problemas económicos','Consumo de sustancias','Crisis emocional','Conflicto laboral','Otro']},
+      {id:'canalizado', etiqueta:'¿Se canalizó a especialista?', tipo:'sino', req:true},
+      {id:'observaciones', etiqueta:'Observaciones', tipo:'textarea', ancho:true}
+    ]},
+
+  { id:'ius_natura', inactivo:true, nombre:'IUS NATURA / Cumplimiento legal', hoja:'IUS NATURA', area:'Cumplimiento legal',
+    ayuda:'Resultado de la evaluación de requisitos legales.',
+    campos:[
+      {id:'fecha', etiqueta:'Fecha de evaluación', tipo:'fecha', req:true},
+      {id:'periodo', etiqueta:'Periodo evaluado', tipo:'mes', req:true, hoy:true},
+      {id:'tipo', etiqueta:'Tipo de evaluación', tipo:'select', req:true, opciones:['Evaluación IUS NATURA','Autoevaluación','Visita de autoridad']},
+      {id:'evaluados', etiqueta:'Requisitos evaluados', tipo:'numero', req:true},
+      {id:'cumplen', etiqueta:'Requisitos que cumplen', tipo:'numero', req:true},
+      {id:'criticos', etiqueta:'Incumplimientos críticos', tipo:'numero'},
+      {id:'hallazgos', etiqueta:'Principales hallazgos', tipo:'textarea', ancho:true},
+      {id:'plan', etiqueta:'Plan de acción', tipo:'textarea', ancho:true},
+      {id:'compromiso', etiqueta:'Fecha compromiso', tipo:'fecha'},
+      {id:'evidencia', etiqueta:'Liga a evidencia', tipo:'link'}
+    ],
+    calc: d => ({ '% cumplimiento legal': pct(d.cumplen, d.evaluados) })},
+
+  { id:'my_audit', nombre:'My Audit', hoja:'My Audit', area:'SHE',
+    ayuda:'Seguimiento a gembas: resultado SITE 360 y gembas realizados.',
+    campos:[
+      {id:'fecha', etiqueta:'Fecha del reporte', tipo:'fecha', req:true, hoy:true},
+      {id:'turno', etiqueta:'Turno', tipo:'select', opciones:[...TURNOS, 'Todo el día']},
+      {id:'t2', etiqueta:'SITE 360', tipo:'titulo'},
+      {id:'adherencia', etiqueta:'% Adherencia', tipo:'numero', req:true, max:100, corto:true},
+      {id:'cumplimiento', etiqueta:'% Cumplimiento', tipo:'numero', req:true, max:100, corto:true},
+      {id:'t3', etiqueta:'Gembas', tipo:'titulo'},
+      {id:'gembas', etiqueta:'Gembas realizados', tipo:'numero', req:true}
+    ]},
+
+  { id:'gasto', inactivo:true, nombre:'Adherencia al gasto', hoja:'Adherencia al gasto', area:'Por definir',
+    ayuda:'Presupuesto contra gasto real del mes, por rubro.',
+    campos:[ {id:'periodo', etiqueta:'Mes del gasto', tipo:'mes', req:true, hoy:true} ],
+    tabla:{ titulo:'Gasto por rubro', columnas:[
+      {id:'rubro', etiqueta:'Rubro', tipo:'select', req:true, ancho:true, opciones:['EPP','Equipo contra incendio','Señalización','Capacitación','Servicio médico','Mantenimiento SHE','Servicios externos','Otros']},
+      {id:'presupuesto', etiqueta:'Presupuesto ($)', tipo:'numero', req:true},
+      {id:'real', etiqueta:'Gasto real ($)', tipo:'numero', req:true},
+      {id:'comentario', etiqueta:'Comentario', tipo:'texto', ancho:true}
+    ], calc: f => ({ '% adherencia': pct(f.real, f.presupuesto) })}},
+
+  { id:'peak', inactivo:true, nombre:'Peak SHE', hoja:'Peak SHE', area:'SHE',
+    ayuda:'Actividades del plan SHE para la temporada peak y su avance.',
+    campos:[ {id:'temporada', etiqueta:'Temporada', tipo:'texto', req:true, valor:'Peak ' + new Date().getFullYear()},
+             {id:'fecha', etiqueta:'Fecha de corte del avance', tipo:'fecha', req:true, hoy:true} ],
+    tabla:{ titulo:'Actividades', columnas:[
+      {id:'actividad', etiqueta:'Actividad', tipo:'texto', req:true, ancho:true},
+      {id:'responsable', etiqueta:'Responsable', tipo:'texto'},
+      {id:'fecha', etiqueta:'Fecha compromiso', tipo:'fecha'},
+      {id:'estatus', etiqueta:'Estatus', tipo:'select', req:true, opciones:['No iniciada','En proceso','Completada','Retrasada']},
+      {id:'avance', etiqueta:'Avance (%)', tipo:'numero'},
+      {id:'comentario', etiqueta:'Comentario', tipo:'texto', ancho:true}
+    ]}},
+
+  { id:'melicam', inactivo:true, nombre:'Melicam', hoja:'Melicam', area:'SHE',
+    ayuda:'Alertas del día por tipo de desvío y zona.',
+    campos:[ {id:'fecha', etiqueta:'Día de las alertas', tipo:'fecha', req:true, hoy:true},
+             {id:'turno', etiqueta:'Turno', tipo:'select', opciones:[...TURNOS, 'Todo el día']} ],
+    tabla:{ titulo:'Alertas', columnas:[
+      {id:'desvio', etiqueta:'Tipo de desvío', tipo:'select', req:true, opciones:['Peatón fuera de ruta','Uso de celular','Sin EPP','Exceso de velocidad de equipo','Acto inseguro en altura','Obstrucción de pasillo','Otro']},
+      {id:'zona', etiqueta:'Zona', tipo:'select', opciones:ZONAS},
+      {id:'alertas', etiqueta:'Alertas recibidas', tipo:'numero', req:true},
+      {id:'validadas', etiqueta:'Alertas validadas', tipo:'numero'},
+      {id:'falsos', etiqueta:'Falsos positivos', tipo:'numero'},
+      {id:'gestionadas', etiqueta:'Gestionadas con acción', tipo:'numero'}
+    ], calc: f => ({ '% gestión': pct(f.gestionadas, f.validadas) })}},
+
+  { id:'hazmat', inactivo:true, nombre:'HAZMAT', hoja:'HAZMAT', area:'SHE',
+    ayuda:'Inspecciones, recepciones y eventos con materiales peligrosos.',
+    campos:[
+      {id:'tipo', etiqueta:'Tipo de registro', tipo:'select', req:true, opciones:['Inspección de almacén','Recepción de material peligroso','Derrame o fuga','Simulacro','Capacitación']},
+      {id:'fecha', etiqueta:'Fecha del evento', tipo:'fecha', req:true},
+      {id:'hora', etiqueta:'Hora del evento', tipo:'hora', req:true},
+      {id:'zona', etiqueta:'Zona', tipo:'select', opciones:ZONAS, req:true},
+      {id:'clase', etiqueta:'Clase de riesgo', tipo:'select', opciones:['Clase 1 Explosivos','Clase 2 Gases','Clase 3 Líquidos inflamables','Clase 4 Sólidos inflamables','Clase 5 Oxidantes','Clase 6 Tóxicos','Clase 7 Radiactivos','Clase 8 Corrosivos','Clase 9 Misceláneos (incl. baterías de litio)','Varias clases'], mostrarSi:{campo:'tipo', en:['Inspección','Recepción','Derrame']}},
+      {id:'material', etiqueta:'Material o producto', tipo:'texto', mostrarSi:{campo:'tipo', en:['Recepción','Derrame']}},
+      {id:'cantidad', etiqueta:'Cantidad', tipo:'numero', mostrarSi:{campo:'tipo', en:['Recepción','Derrame']}},
+      {id:'unidad', etiqueta:'Unidad', tipo:'select', opciones:['kg','L','Piezas'], mostrarSi:{campo:'tipo', en:['Recepción','Derrame']}},
+      {id:'hds', etiqueta:'Hojas de datos de seguridad disponibles', tipo:'sino', mostrarSi:{campo:'tipo', en:['Inspección','Recepción']}},
+      {id:'etiquetado', etiqueta:'Etiquetado SGA correcto', tipo:'sino', mostrarSi:{campo:'tipo', en:['Inspección','Recepción']}},
+      {id:'kit', etiqueta:'Kit antiderrames completo', tipo:'sino', mostrarSi:{campo:'tipo', en:['Inspección','Derrame']}},
+      {id:'contencion', etiqueta:'Contención secundaria en buen estado', tipo:'sino', mostrarSi:{campo:'tipo', en:['Inspección']}},
+      {id:'participantes', etiqueta:'Participantes', tipo:'numero', mostrarSi:{campo:'tipo', en:['Simulacro','Capacitación']}},
+      {id:'descripcion', etiqueta:'Descripción u observaciones', tipo:'textarea', ancho:true},
+      {id:'acciones', etiqueta:'Acciones tomadas', tipo:'textarea', ancho:true},
+      {id:'foto', etiqueta:'Foto', tipo:'foto'}
+    ]},
+
+  { id:'slas', inactivo:true, nombre:'SLA´s', hoja:'SLAs', area:'Por definir',
+    ayuda:'Meta contra resultado de cada indicador de servicio.',
+    campos:[ {id:'periodo', etiqueta:'Periodo medido', tipo:'mes', req:true, hoy:true} ],
+    tabla:{ titulo:'Indicadores', columnas:[
+      {id:'indicador', etiqueta:'Indicador / servicio', tipo:'texto', req:true, ancho:true},
+      {id:'unidad', etiqueta:'Unidad', tipo:'select', opciones:['%','Horas','Días','Casos','Otra']},
+      {id:'sentido', etiqueta:'Se cumple cuando el resultado es', tipo:'select', req:true, opciones:['Mayor o igual a la meta','Menor o igual a la meta']},
+      {id:'meta', etiqueta:'Meta', tipo:'numero', req:true},
+      {id:'resultado', etiqueta:'Resultado', tipo:'numero', req:true},
+      {id:'comentario', etiqueta:'Comentario', tipo:'texto', ancho:true}
+    ], calc: f => ({ 'Cumple SLA': f.meta === '' || f.resultado === '' || !f.sentido ? '' :
+        (f.sentido.startsWith('Mayor') ? f.resultado >= f.meta : f.resultado <= f.meta) ? 'Sí' : 'No' })}}
+];
+/* Icono y descripción corta que se ven en la pantalla de selección */
+const TARJETAS = {
+  accidentabilidad:{ ico:'🚑', des:'Reporte de NM, FAC, IDM, RWC, MTC y LTA' },
+  consultas:       { ico:'🩺', des:'Una consulta por registro, MELI o externo' },
+  salud_emocional: { ico:'💬', des:'Un caso por registro, MELI o externo' },
+  ius_natura:      { ico:'⚖️', des:'Requisitos evaluados y % de cumplimiento' },
+  my_audit:        { ico:'👣', des:'Seguimiento a gembas y SITE 360' },
+  gasto:           { ico:'💰', des:'Presupuesto contra gasto real' },
+  peak:            { ico:'📈', des:'Plan de actividades de temporada' },
+  melicam:         { ico:'🎥', des:'Alertas por desvío y zona' },
+  hazmat:          { ico:'☣️', des:'Materiales peligrosos y derrames' },
+  slas:            { ico:'⏱️', des:'Meta contra resultado por indicador' }
+};
+/* ===================================================== */
+
+const SIGLAS = ['nm','fac','idm','rwc','mtc','lta'];
+
+// Escribe -NM1:, -NM2:, -FAC1: … según los conteos, sin repetir las líneas que ya existen
+function lineasPorSigla(area, d) {
+  const lineas = [];
+  SIGLAS.forEach(k => { for (let i = 1; i <= Number(d[k] || 0); i++) lineas.push(`-${k.toUpperCase()}${i}:`); });
+  if (!lineas.length) { avisar('Todos los indicadores están en 0. No hay casos que desglosar.'); return; }
+  const faltan = lineas.filter(l => !new RegExp('^' + l.replace('-', '\\-'), 'm').test(area.value));
+  if (!faltan.length) { avisar('Ya están todas las líneas de los casos.'); return; }
+  area.value = (area.value.trim() ? area.value.trimEnd() + '\n' : '') + faltan.map(l => l + ' ').join('\n');
+  area.focus(); area.setSelectionRange(area.value.indexOf(faltan[0]) + faltan[0].length + 1, area.value.indexOf(faltan[0]) + faltan[0].length + 1);
+}
+
+const CLAVE_PEND = 'formulario_she_pendientes';
+const $ = id => document.getElementById(id);
+const esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+const fotos = {};
+let actual = null, filas = [], nFila = 0;
+
+/* ---------- Pantalla de selección ---------- */
+let filtroArea = 'Todas', sucio = false;
+const leerJSON = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
+const sinAcentos = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function textoUltimo(apId) {
+  const t = leerJSON('she_ultimo', {})[apId]; if (!t) return '';
+  const d = new Date(t), hoy = new Date();
+  const mismoDia = d.toDateString() === hoy.toDateString();
+  return mismoDia ? 'Enviado hoy desde este equipo'
+    : 'Último envío: ' + d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+}
+
+function tileHTML(a) {
+  const t = TARJETAS[a.id] || { ico: '📄', des: a.ayuda };
+  const ult = textoUltimo(a.id);
+  if (a.inactivo) return `<div class="tile inactivo" aria-disabled="true" title="Aún no disponible">
+    <span class="ico" aria-hidden="true">${t.ico}</span>
+    <span class="nom">${esc(a.nombre)}</span>
+    <span class="des">${esc(t.des)}</span>
+    <span class="meta">Próximamente · ${esc(a.area)}</span>
+  </div>`;
+  return `<button type="button" class="tile" data-ap="${a.id}">
+    <span class="ico" aria-hidden="true">${t.ico}</span>
+    <span class="nom">${esc(a.nombre)}</span>
+    <span class="des">${esc(t.des)}</span>
+    <span class="meta${ult ? ' ok' : ''}">${ult ? esc(ult) : esc(a.area)}</span>
+  </button>`;
+}
+
+function construirInicio() {
+  const areas = ['Todas', ...new Set(APARTADOS.map(a => a.area))];
+  $('filtros').innerHTML = areas.map(ar => {
+    const n = ar === 'Todas' ? APARTADOS.length : APARTADOS.filter(a => a.area === ar).length;
+    return `<button type="button" class="filtro" data-area="${esc(ar)}" aria-pressed="${ar === filtroArea}">${esc(ar)}<b>${n}</b></button>`;
+  }).join('');
+  $('filtros').querySelectorAll('.filtro').forEach(b => b.onclick = () => { filtroArea = b.dataset.area; construirInicio(); });
+
+  const q = sinAcentos($('buscar').value.trim());
+  const lista = APARTADOS.filter(a =>
+    (filtroArea === 'Todas' || a.area === filtroArea) &&
+    (!q || sinAcentos(`${a.nombre} ${a.area} ${a.ayuda} ${(TARJETAS[a.id] || {}).des || ''}`).includes(q)));
+
+  const rec = leerJSON('she_recientes', []).map(id => APARTADOS.find(a => a.id === id && !a.inactivo)).filter(Boolean).slice(0, 3);
+  const mostrarRec = rec.length && !q && filtroArea === 'Todas';
+  $('recientes').innerHTML = mostrarRec
+    ? `<h2 class="bloque-tit">Usados recientemente</h2><div class="tiles">${rec.map(tileHTML).join('')}</div>` : '';
+  $('titTodos').textContent = q ? `Resultados (${lista.length})` : filtroArea === 'Todas' ? 'Todos los apartados' : filtroArea;
+
+  $('tiles').innerHTML = lista.length ? lista.map(tileHTML).join('')
+    : `<div class="sin-res">No hay apartados que coincidan con “${esc($('buscar').value)}”. Prueba con otra palabra o quita el filtro.</div>`;
+  document.querySelectorAll('#inicio button.tile').forEach(b => b.onclick = () => { location.hash = b.dataset.ap; });
+
+  $('cambiar').innerHTML = APARTADOS.map(a =>
+    `<option value="${a.id}"${a.inactivo ? ' disabled' : ''}>${esc(a.nombre)}${a.inactivo ? ' (próximamente)' : ''}</option>`).join('');
+}
+
+function mostrarInicio() {
+  actual = null; sucio = false;
+  $('cabecera').hidden = false; $('inicio').hidden = false;
+  $('barraAp').hidden = true; $('contenido').hidden = true; $('acciones').hidden = true;
+  construirInicio();
+  window.scrollTo({ top: 0 });
+}
+
+function confirmarSalida() {
+  return !sucio || confirm('Tienes datos sin enviar en este apartado. ¿Salir y descartarlos?');
+}
+
+function enrutar() {
+  const id = location.hash.slice(1);
+  if (actual && actual.id === id) return;
+  if (actual && !confirmarSalida()) { history.pushState(null, '', '#' + actual.id); $('cambiar').value = actual.id; return; }
+  if (id && APARTADOS.some(a => a.id === id && !a.inactivo)) abrir(id); else mostrarInicio();
+}
+
+/* ---------- Render de campos ---------- */
+function campoHTML(c, pre) {
+  const id = pre + c.id, req = c.req ? ' <span class="req">*</span>' : '';
+  const cls = 'campo' + (c.ancho || ['textarea','foto'].includes(c.tipo) ? ' ancho' : '') + (c.corto ? ' corto' : '');
+  const cond = c.mostrarSi ? ` data-cond='${JSON.stringify(c.mostrarSi)}' data-pre="${pre}"` : '';
+  const et = `<span>${esc(c.etiqueta)}${req}</span>`;
+  switch (c.tipo) {
+    case 'titulo':
+      return `<h3 class="subtit ancho">${esc(c.etiqueta)}</h3>`;
+    case 'select':
+      return `<label class="${cls}" id="${id}-w"${cond}>${et}<select id="${id}">
+        <option value="">Selecciona…</option>${c.opciones.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>`;
+    case 'textarea':
+      return `<div class="${cls}" id="${id}-w"${cond}><label for="${id}">${et}</label>
+        ${c.nota ? `<span class="nota">${esc(c.nota)}</span>` : ''}
+        <textarea id="${id}" rows="${c.filas || 3}" placeholder="${esc(c.placeholder || '')}"></textarea>
+        ${c.boton ? `<button type="button" class="enlace" data-boton="${id}">${esc(c.boton.texto)}</button>` : ''}</div>`;
+    case 'sino':
+      return `<div class="${cls}" id="${id}-w"${cond} role="radiogroup" aria-label="${esc(c.etiqueta)}">${et}<div class="opciones">
+        <input type="radio" name="${id}" id="${id}-si" value="Sí"><label for="${id}-si">Sí</label>
+        <input type="radio" name="${id}" id="${id}-no" value="No"><label for="${id}-no">No</label></div></div>`;
+    case 'foto':
+      return `<div class="${cls}" id="${id}-w"${cond}>${et}<div id="${id}-f"></div></div>`;
+    default: {
+      const t = { numero:'number', fecha:'date', hora:'time', mes:'month', link:'url' }[c.tipo] || 'text';
+      const extra = c.tipo === 'numero' ? ` inputmode="decimal" min="0" step="any"${c.max != null ? ` max="${c.max}"` : ''}` : c.tipo === 'link' ? ' placeholder="https://"' : '';
+      const v = c.valor ?? (c.hoy || c.ahora ? valorHoy(c.tipo) : '');
+      // Fechas de eventos y periodos no pueden ser futuros; las fechas compromiso sí
+      const futuro = /compromiso/i.test(c.etiqueta);
+      const max = futuro ? '' : c.tipo === 'fecha' ? ` max="${valorHoy('fecha')}"` : c.tipo === 'mes' ? ` max="${valorHoy('mes')}"` : '';
+      return `<label class="${cls}" id="${id}-w"${cond}>${et}<input type="${t}" id="${id}"${extra}${max} value="${esc(v)}"></label>`;
+    }
+  }
+}
+
+function pintarFoto(id) {
+  const cont = $(id + '-f'); if (!cont) return;
+  if (fotos[id]) {
+    cont.innerHTML = `<div class="miniatura"><img src="${fotos[id]}" alt="Foto adjunta">
+      <button type="button" class="enlace rojo">Quitar foto</button></div>`;
+    cont.querySelector('button').onclick = () => { delete fotos[id]; pintarFoto(id); };
+  } else {
+    cont.innerHTML = `<label class="foto-btn">📷 Tomar o subir foto
+      <input type="file" accept="image/*" capture="environment"></label>`;
+    cont.querySelector('input').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { fotos[id] = await comprimir(f); pintarFoto(id); }
+      catch { avisar('La foto no se pudo cargar. Intenta con otra.', 'error'); }
+    };
+  }
+}
+
+function abrir(apId) {
+  const ap = APARTADOS.find(a => a.id === apId); if (!ap) return;
+  actual = ap; filas = []; sucio = false; Object.keys(fotos).forEach(k => delete fotos[k]);
+  const rec = leerJSON('she_recientes', []).filter(x => x !== ap.id); rec.unshift(ap.id);
+  localStorage.setItem('she_recientes', JSON.stringify(rec.slice(0, 3)));
+  $('cabecera').hidden = true; $('inicio').hidden = true;
+  $('barraAp').hidden = false; $('contenido').hidden = false;
+  if (!$('cambiar').options.length) construirInicio();
+  $('cambiar').value = ap.id;
+  $('contenido').classList.remove('entrar'); void $('contenido').offsetWidth; $('contenido').classList.add('entrar');
+  window.scrollTo({ top: 0 });
+
+  const pre = `a-${ap.id}-`;
+  $('contenido').innerHTML = `
+    <section class="tarjeta">
+      <span class="dueno">${esc(ap.area)}</span>
+      <h2>${esc(ap.nombre)}</h2>
+      <p class="sub">${esc(ap.ayuda)} La fecha y hora de captura se guardan solas al enviar.</p>
+      <div class="campos">
+        <label class="campo ancho" id="c-resp-w"><span>Quién registra <span class="req">*</span></span>
+          <input type="text" id="c-resp" autocomplete="name" value="${esc(localStorage.getItem('she_resp') || '')}"></label>
+        ${ap.campos.map(c => campoHTML(c, pre)).join('')}
+      </div>
+      <div class="calc" id="calc-ap"></div>
+      ${ap.resumen ? '<button type="button" class="btn-sec resumen" id="btnResumen">Compartir resumen por WhatsApp</button>' : ''}
+    </section>
+    ${ap.tabla ? `<section class="tarjeta">
+      <h3>${esc(ap.tabla.titulo)}</h3><p class="sub">Agrega una fila por cada ${esc(ap.tabla.columnas[0].etiqueta.toLowerCase())}.</p>
+      <div id="filas"></div>
+      <button type="button" class="btn-sec" id="btnFila">Agregar fila</button>
+    </section>` : ''}`;
+
+  ap.campos.filter(c => c.tipo === 'foto').forEach(c => pintarFoto(pre + c.id));
+  if (ap.resumen) $('btnResumen').onclick = compartirResumen;
+  ap.campos.filter(c => c.boton).forEach(c => {
+    document.querySelector(`[data-boton="${pre + c.id}"]`).onclick = () => { c.boton.accion($(pre + c.id), crudo(ap.campos, pre)); sucio = true; };
+  });
+  if (ap.tabla) { $('btnFila').onclick = () => agregarFila(true); agregarFila(false); }
+  $('contenido').oninput = $('contenido').onchange = () => { sucio = true; refrescar(); };
+  $('acciones').hidden = false;
+  refrescar();
+}
+
+function agregarFila(enfocar) {
+  const k = `t-${actual.id}-${nFila++}-`; filas.push(k);
+  const div = document.createElement('div'); div.className = 'fila'; div.id = k + 'fila';
+  div.innerHTML = `<div class="fila-cab"><strong></strong>
+      <button type="button" class="enlace rojo">Quitar</button></div>
+    <div class="campos">${actual.tabla.columnas.map(c => campoHTML(c, k)).join('')}</div>
+    <div class="calc" id="${k}calc"></div>`;
+  div.querySelector('.enlace').onclick = () => { filas = filas.filter(x => x !== k); div.remove(); numerar(); };
+  $('filas').appendChild(div);
+  actual.tabla.columnas.filter(c => c.tipo === 'foto').forEach(c => pintarFoto(k + c.id));
+  numerar();
+  if (enfocar) div.querySelector('input,select,textarea').focus();
+}
+function numerar() {
+  filas.forEach((k, i) => {
+    const f = $(k + 'fila'); f.querySelector('strong').textContent = `Fila ${i + 1}`;
+    f.querySelector('.enlace').hidden = filas.length === 1;
+  });
+}
+
+/* ---------- Lectura, condiciones y cálculos ---------- */
+function leer(c, pre) {
+  const id = pre + c.id;
+  if (c.tipo === 'sino') { const r = document.querySelector(`input[name="${id}"]:checked`); return r ? r.value : ''; }
+  if (c.tipo === 'foto') return fotos[id] || '';
+  const el = $(id); if (!el) return '';
+  const v = el.value.trim();
+  return c.tipo === 'numero' && v !== '' ? Number(v) : v;
+}
+function valorHoy(tipo) {
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  const f = `${d.getFullYear()}-${z(d.getMonth() + 1)}`;
+  return tipo === 'mes' ? f : tipo === 'hora' ? `${z(d.getHours())}:${z(d.getMinutes())}` : `${f}-${z(d.getDate())}`;
+}
+function crudo(campos, pre) { const o = {}; campos.forEach(c => { if (c.tipo !== 'titulo') o[c.id] = leer(c, pre); }); return o; }
+
+function refrescar() {
+  document.querySelectorAll('[data-cond]').forEach(el => {
+    const c = JSON.parse(el.dataset.cond);
+    const v = String($(el.dataset.pre + c.campo)?.value || '');
+    const coincide = lista => lista.some(x => v.startsWith(x));
+    el.hidden = c.en ? !coincide(c.en) : (c.noEn ? coincide(c.noEn) || false : false);
+  });
+  const fmt = o => Object.entries(o).filter(([, v]) => v !== '').map(([k, v]) => `${k}: ${v}${k.startsWith('%') ? '%' : ''}`).join(' · ');
+  if (actual.calc) $('calc-ap').textContent = fmt(actual.calc(crudo(actual.campos, `a-${actual.id}-`)));
+  if (actual.tabla?.calc) filas.forEach(k => $(k + 'calc').textContent = fmt(actual.tabla.calc(crudo(actual.tabla.columnas, k))));
+}
+
+/* ---------- Recolectar y validar ---------- */
+function recolectar() {
+  document.querySelectorAll('.campo.falta').forEach(e => e.classList.remove('falta'));
+  const faltan = [];
+  const marcar = id => { const w = $(id + '-w'); if (w) { w.classList.add('falta'); faltan.push(w); } };
+  ['c-resp'].forEach(id => { if (!$(id).value.trim()) marcar(id); });
+
+  const empaquetar = (campos, pre) => {
+    const out = {}, raw = crudo(campos, pre);
+    campos.forEach(c => {
+      if (c.tipo === 'titulo') return;
+      const w = $(pre + c.id + '-w'); if (w && w.hidden) return;
+      const v = leer(c, pre);
+      if ((c.req || (c.reqSi && c.reqSi(raw))) && v === '') marcar(pre + c.id);
+      const el = $(pre + c.id);
+      if (v !== '' && el && el.max && (el.type === 'number' ? Number(v) > Number(el.max) : String(v) > el.max)) marcar(pre + c.id);
+      out[c.etiqueta] = c.tipo === 'foto' && v ? { mime: 'image/jpeg', data: v.split(',')[1] } : v;
+    });
+    return out;
+  };
+
+  const pre = `a-${actual.id}-`;
+  const datos = empaquetar(actual.campos, pre);
+  if (actual.calc) Object.assign(datos, actual.calc(crudo(actual.campos, pre)));
+
+  const filasOut = [];
+  if (actual.tabla) {
+    filas.forEach(k => {
+      const f = empaquetar(actual.tabla.columnas, k);
+      if (actual.tabla.calc) Object.assign(f, actual.tabla.calc(crudo(actual.tabla.columnas, k)));
+      filasOut.push(f);
+    });
+  }
+
+  if (faltan.length) {
+    faltan[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    avisar(`Revisa ${faltan.length} campo(s) marcados en rojo: faltan datos o tienen un valor fuera de rango (fecha futura o % mayor a 100).`, 'error');
+    return null;
+  }
+  localStorage.setItem('she_resp', $('c-resp').value.trim());
+  return {
+    token: CONFIG.TOKEN,
+    id: crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2),
+    apartado: actual.nombre, hoja: actual.hoja, area: actual.area,
+    capturado: new Date().toISOString(),
+    sitio: CONFIG.SITIO, responsable: $('c-resp').value.trim(),
+    datos, filas: filasOut
+  };
+}
+
+/* ---------- Envío y cola sin conexión ---------- */
+async function enviar(p) {
+  const r = await fetch(CONFIG.URL_SCRIPT, { method: 'POST', body: JSON.stringify(p) }); // text/plain: sin preflight CORS
+  const j = await r.json();
+  if (!j.ok) { const e = new Error(j.error || 'Error del servidor'); e.servidor = true; throw e; }
+  return j;
+}
+const leerPend = () => { try { return JSON.parse(localStorage.getItem(CLAVE_PEND)) || []; } catch { return []; } };
+const guardarPend = l => { try { localStorage.setItem(CLAVE_PEND, JSON.stringify(l)); return true; } catch { return false; } };
+function pintarPend() {
+  const n = leerPend().length;
+  $('pendientes').classList.toggle('visible', n > 0);
+  $('pendTxt').textContent = n === 1 ? '1 registro guardado en este equipo sin enviar.' : `${n} registros guardados en este equipo sin enviar.`;
+}
+async function enviarPendientes(silencioso) {
+  const lista = leerPend(); if (!lista.length) return;
+  const resto = [];
+  for (const p of lista) { try { await enviar(p); } catch { resto.push(p); } }
+  guardarPend(resto); pintarPend();
+  if (!silencioso) avisar(resto.length ? 'Sigue sin conexión. Se reintentará al recuperar señal.' : 'Registros pendientes enviados.', resto.length ? 'error' : 'ok');
+}
+
+$('btnEnviar').onclick = async () => {
+  if (!actual) return;
+  const p = recolectar(); if (!p) return;
+  const b = $('btnEnviar'); b.disabled = true; b.textContent = 'Enviando…';
+  try {
+    await enviar(p); marcarEnviado(actual.id);
+    avisar(`${actual.nombre}: registro enviado.`, 'ok'); abrir(actual.id);
+  } catch (err) {
+    if (err.servidor) avisar('No se guardó: ' + err.message, 'error');
+    else {
+      const l = leerPend(); l.push(p);
+      if (guardarPend(l)) { avisar('Sin conexión. El registro se guardó en este equipo y se enviará después.', 'error'); abrir(actual.id); }
+      else avisar('Sin conexión y sin espacio para guardar. No cierres la página y reintenta.', 'error');
+      pintarPend();
+    }
+  } finally { b.disabled = false; b.textContent = 'Enviar registro'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+};
+
+function comprimir(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = () => rej(new Error('imagen')); img.src = url;
+  });
+}
+let tAviso;
+function avisar(msg, tipo) {
+  const a = $('aviso'); a.textContent = msg; a.className = 'aviso visible ' + (tipo || '');
+  clearTimeout(tAviso); tAviso = setTimeout(() => a.className = 'aviso', 4500);
+}
+
+async function compartirResumen() {
+  const d = crudo(actual.campos, `a-${actual.id}-`);
+  const vacios = actual.campos.filter(c => c.req && c.tipo !== 'titulo' && d[c.id] === '');
+  if (vacios.length) { avisar('Completa los campos obligatorios antes de compartir el resumen.', 'error'); return; }
+  const texto = actual.resumen(d);
+  try {
+    if (navigator.share) { await navigator.share({ text: texto }); return; }
+    await navigator.clipboard.writeText(texto);
+    avisar('Resumen copiado. Pégalo en WhatsApp.', 'ok');
+  } catch (e) {
+    if (e.name !== 'AbortError') window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+  }
+}
+
+function marcarEnviado(apId) {
+  const u = leerJSON('she_ultimo', {}); u[apId] = Date.now();
+  localStorage.setItem('she_ultimo', JSON.stringify(u));
+}
+
+$('btnPend').onclick = () => enviarPendientes(false);
+$('buscar').oninput = construirInicio;
+$('buscar').onkeydown = e => { if (e.key === 'Enter') { const t = document.querySelector('#tiles button.tile'); if (t) t.click(); } };
+$('btnVolver').onclick = () => { if (confirmarSalida()) { sucio = false; location.hash = ''; } };
+$('cambiar').onchange = e => {
+  if (!confirmarSalida()) { e.target.value = actual.id; return; }
+  sucio = false; location.hash = e.target.value;
+};
+window.addEventListener('hashchange', enrutar);
+window.addEventListener('online', () => enviarPendientes(true));
+
+construirInicio(); pintarPend(); enrutar();
+if (navigator.onLine) enviarPendientes(true);
+</script>
+</body>
+</html>
